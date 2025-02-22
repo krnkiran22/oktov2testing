@@ -1,13 +1,13 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import type { AuthOptions } from "next-auth";
- 
-export const authOptions: AuthOptions = {
+import type { NextAuthOptions } from "next-auth";
+
+const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET,
   providers: [
-    GoogleProvider({ // Configure Google Provider
-      clientId: process.env.GOOGLE_CLIENT_ID!, // From .env
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!, // From .env
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   session: {
@@ -21,13 +21,14 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      //@ts-expect-error: This error is intentional due to library limitation
+      //@ts-expect-error This error is intentional due to library limitation
       session.id_token = token.id_token;
       return session;
     },
   },
 };
- 
+
 const handler = NextAuth(authOptions);
- 
-export { handler as GET, handler as POST };
+
+export { handler as GET, handler as POST }; // ❌ REMOVE THIS
+export default handler; // ✅ USE THIS INSTEAD
