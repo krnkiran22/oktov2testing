@@ -14,7 +14,7 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, account }) {
       if (account) {
         token.id_token = account.id_token;
       }
