@@ -1,101 +1,144 @@
-import Image from "next/image";
+"use client";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { LoginButton } from "@/app/components/LoginButton";
+import GetButton from "@/app/components/GetButton";
+import { getAccount, getPortfolioNFT, useOkto, nftTransfer, getPortfolioActivity } from '@okto_web3/react-sdk';import { GetPortfolio } from "./components/GetPortfolio"; // Import GetPortfolio
+import CheckJobStatus from "./components/CheckJobStatus";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { data: session } = useSession();
+  const oktoClient = useOkto();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  //@ts-ignore
+  const idToken = useMemo(() => (session ? session.id_token : null), [session]);
+const [portfolio, setPortfolio] = useState<[] | null>(null); // State to hold the portfolio data
+  const [error, setError] = useState<string | null>(null); // State to hold error messages
+  const [nftTransferError, setNftTransferError] = useState<string | null>(null); // Error state for NFT transfer
+
+  async function handleAuthenticate(): Promise<any> {
+    if (!idToken) {
+      return { result: false, error: "No google login" };
+    }
+    const user = await oktoClient.loginUsingOAuth({
+      idToken: idToken,
+      provider: 'google',
+    });
+    console.log("Authentication Success", user);
+    return JSON.stringify(user);
+  }
+
+  async function handleLogout() {
+    try {
+      signOut();
+      return { result: "logout success" };
+    } catch (error) {
+      return { result: "logout failed" };
+    }
+  }
+  async function fetchActivity() {
+    try {
+        const activities = await getPortfolioActivity(oktoClient);
+        console.log('Portfolio activities:', activities);
+    } catch (error) {
+        console.error('Error fetching activities:', error);
+    }
+}
+  async function handleNFTTransfer() {
+    try {
+        const transferParams = {
+            caip2Id: "eip155:84532",
+            collectionAddress: "0xa63f474e9b5e9297c44bb378f27eb3c3882a4544",
+            nftId: "11", // NFT token ID
+            recipientWalletAddress: "0xC95380dc0277Ac927dB290234ff66880C4cdda8c",
+            amount: 1,
+            nftType: 'ERC721'
+        };
+
+        // Create the user operation
+        const userOp = await nftTransfer(oktoClient, transferParams);
+        
+        // Sign the operation
+        const signedOp = await oktoClient.signUserOp(userOp);
+        
+        // Execute the transfer
+        const txHash = await oktoClient.executeUserOp(signedOp);
+        console.log('NFT Transfer transaction hash:', txHash);
+    } catch (error) {
+        console.error('Error in NFT transfer:', error);
+    }
+}
+   async function handleGetPortfolioNFT() {
+      try {
+        const result = await getPortfolioNFT(oktoClient); // Fetch the portfolio NFT
+        console.log(result)
+      } catch (error) {
+        setError("Failed to retrieve portfolio NFTs.");
+        setPortfolio(null);
+      }
+    }
+  
+
+  useEffect(() => {
+    if (idToken) {
+      handleAuthenticate();
+    }
+  }, [idToken]);
+
+  return (
+    <main className="flex min-h-screen flex-col items-center space-y-6 p-12 bg-violet-200">
+      <div className="text-black font-bold text-3xl mb-8">Template App</div>
+
+      <div className="grid grid-cols-2 gap-4 w-full max-w-lg mt-8">
+        <LoginButton />
+        <GetButton title="Okto Log out" apiFn={handleLogout} />
+        <GetButton title="getAccount" apiFn={getAccount} />
+        {/* Pass getPortfolioNFT as apiFn to GetPortfolio */}
+       
+      </div>
+      <div>
+      <button
+        onClick={handleGetPortfolioNFT}
+        className="border border-transparent rounded px-4 py-2 transition-colors bg-blue-500 hover:bg-blue-700 text-white"
+      >
+        Get Portfolio NFTs
+      </button>
+
+      {/* Display Portfolio Result */}
+      {portfolio && (
+        <div className="mt-4">
+          <h3 className="font-bold">Your NFT Portfolio</h3>
+          <pre>{JSON.stringify(portfolio, null, 2)}</pre>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {/* Display Error Message */}
+      {error && (
+        <div className="mt-4 text-red-500">
+          <p>{error}</p>
+        </div>
+      )}
     </div>
+    <button
+          onClick={handleNFTTransfer}
+          className="mt-4 border border-transparent rounded px-4 py-2 transition-colors bg-green-500 hover:bg-green-700 text-white"
+        >
+          Transfer NFT
+        </button>
+        <button 
+            className="border border-transparent rounded px-4 py-2 transition-colors bg-blue-500 hover:bg-blue-700 text-white"
+            onClick={fetchActivity}>
+            Fetch Portfolio Activity
+        </button>
+
+        {/* Display NFT Transfer Error Message */}
+        {nftTransferError && (
+          <div className="mt-4 text-red-500">
+            <p>{nftTransferError}</p>
+          </div>
+        )}
+        <CheckJobStatus />
+        
+    </main>
   );
 }
