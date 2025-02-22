@@ -21,7 +21,7 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      //@ts-expect-error
+      //@ts-expect-error: This error is intentional due to library limitation
       session.id_token = token.id_token;
       return session;
     },

@@ -37,7 +37,8 @@ const CheckJobStatus = () => {
         setStatus("No job found with this ID.");
       }
     } catch (error) {
-      setStatus("Failed to fetch status.");
+      console.error("Error fetching job status:", error);
+      setStatus("Error fetching job status.");
       setIsPolling(false);
     }
   };

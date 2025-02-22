@@ -10,13 +10,14 @@ export default function Home() {
   const { data: session } = useSession();
   const oktoClient = useOkto();
 
-  //@ts-ignore
+  // @ts-expect-error: This is necessary due to type mismatch
   const idToken = useMemo(() => (session ? session.id_token : null), [session]);
-const [portfolio, setPortfolio] = useState<[] | null>(null); // State to hold the portfolio data
+  
+  const [portfolio, setPortfolio] = useState<[] | null>(null); // State to hold the portfolio data
   const [error, setError] = useState<string | null>(null); // State to hold error messages
-  const nftTransferError= null;
+  const nftTransferError = null;
 
-  async function handleAuthenticate(): Promise<any> {
+  async function handleAuthenticate(): Promise<string | { result: boolean; error: string }> {
     if (!idToken) {
       return { result: false, error: "No google login" };
     }
@@ -28,56 +29,60 @@ const [portfolio, setPortfolio] = useState<[] | null>(null); // State to hold th
     return JSON.stringify(user);
   }
 
-  async function handleLogout() {
+  async function handleLogout(): Promise<{ result: string }> {
     try {
       signOut();
       return { result: "logout success" };
-    } catch (error) {
+    } catch {
       return { result: "logout failed" };
     }
   }
-  async function fetchActivity() {
-    try {
-        const activities = await getPortfolioActivity(oktoClient);
-        console.log('Portfolio activities:', activities);
-    } catch (error) {
-        console.error('Error fetching activities:', error);
-    }
-}
-  async function handleNFTTransfer() {
-    try {
-        const transferParams = {
-            caip2Id: "eip155:84532",
-            collectionAddress: "0xa63f474e9b5e9297c44bb378f27eb3c3882a4544",
-            nftId: "11", // NFT token ID
-            recipientWalletAddress: "0xC95380dc0277Ac927dB290234ff66880C4cdda8c",
-            amount: 1,
-            nftType: 'ERC721'
-        };
 
-        // Create the user operation
-        const userOp = await nftTransfer(oktoClient, transferParams);
-        
-        // Sign the operation
-        const signedOp = await oktoClient.signUserOp(userOp);
-        
-        // Execute the transfer
-        const txHash = await oktoClient.executeUserOp(signedOp);
-        console.log('NFT Transfer transaction hash:', txHash);
+  async function fetchActivity(): Promise<void> {
+    try {
+      const activities = await getPortfolioActivity(oktoClient);
+      console.log('Portfolio activities:', activities);
+    } catch {
+      console.error('Error fetching activities.');
+    }
+  }
+
+  async function handleNFTTransfer(): Promise<void> {
+    try {
+      const transferParams = {
+        caip2Id: "eip155:84532",
+        collectionAddress: "0xa63f474e9b5e9297c44bb378f27eb3c3882a4544",
+        nftId: "11", // NFT token ID
+        recipientWalletAddress: "0xC95380dc0277Ac927dB290234ff66880C4cdda8c",
+        amount: 1,
+        nftType: 'ERC721'
+      };
+
+      // Create the user operation
+      const userOp = await nftTransfer(oktoClient, transferParams);
+      
+      // Sign the operation
+      const signedOp = await oktoClient.signUserOp(userOp);
+      
+      // Execute the transfer
+      const txHash = await oktoClient.executeUserOp(signedOp);
+      console.log('NFT Transfer transaction hash:', txHash);
     } catch (error) {
-        console.error('Error in NFT transfer:', error);
+      console.error('Error in NFT transfer:', error);
     }
-}
-   async function handleGetPortfolioNFT() {
-      try {
-        const result = await getPortfolioNFT(oktoClient); // Fetch the portfolio NFT
-        console.log(result)
-      } catch (error) {
-        setError("Failed to retrieve portfolio NFTs.");
-        setPortfolio(null);
-      }
+  }
+
+  async function handleGetPortfolioNFT(): Promise<void> {
+    try {
+      const result = await getPortfolioNFT(oktoClient); // Fetch the portfolio NFT
+      console.log(result);
+      setPortfolio(result || []);
+      setError(null);
+    } catch {
+      setError("Failed to retrieve portfolio NFTs.");
+      setPortfolio(null);
     }
-  
+  }
 
   useEffect(() => {
     if (idToken) {
@@ -93,52 +98,54 @@ const [portfolio, setPortfolio] = useState<[] | null>(null); // State to hold th
         <LoginButton />
         <GetButton title="Okto Log out" apiFn={handleLogout} />
         <GetButton title="getAccount" apiFn={getAccount} />
-        {/* Pass getPortfolioNFT as apiFn to GetPortfolio */}
-       
       </div>
+
       <div>
-      <button
-        onClick={handleGetPortfolioNFT}
-        className="border border-transparent rounded px-4 py-2 transition-colors bg-blue-500 hover:bg-blue-700 text-white"
-      >
-        Get Portfolio NFTs
-      </button>
-
-      {/* Display Portfolio Result */}
-      {portfolio && (
-        <div className="mt-4">
-          <h3 className="font-bold">Your NFT Portfolio</h3>
-          <pre>{JSON.stringify(portfolio, null, 2)}</pre>
-        </div>
-      )}
-
-      {/* Display Error Message */}
-      {error && (
-        <div className="mt-4 text-red-500">
-          <p>{error}</p>
-        </div>
-      )}
-    </div>
-    <button
-          onClick={handleNFTTransfer}
-          className="mt-4 border border-transparent rounded px-4 py-2 transition-colors bg-green-500 hover:bg-green-700 text-white"
+        <button
+          onClick={handleGetPortfolioNFT}
+          className="border border-transparent rounded px-4 py-2 transition-colors bg-blue-500 hover:bg-blue-700 text-white"
         >
-          Transfer NFT
-        </button>
-        <button 
-            className="border border-transparent rounded px-4 py-2 transition-colors bg-blue-500 hover:bg-blue-700 text-white"
-            onClick={fetchActivity}>
-            Fetch Portfolio Activity
+          Get Portfolio NFTs
         </button>
 
-        {/* Display NFT Transfer Error Message */}
-        {nftTransferError && (
-          <div className="mt-4 text-red-500">
-            <p>{nftTransferError}</p>
+        {/* Display Portfolio Result */}
+        {portfolio && (
+          <div className="mt-4">
+            <h3 className="font-bold">Your NFT Portfolio</h3>
+            <pre>{JSON.stringify(portfolio, null, 2)}</pre>
           </div>
         )}
-        <CheckJobStatus />
-        
+
+        {/* Display Error Message */}
+        {error && (
+          <div className="mt-4 text-red-500">
+            <p>{error}</p>
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={handleNFTTransfer}
+        className="mt-4 border border-transparent rounded px-4 py-2 transition-colors bg-green-500 hover:bg-green-700 text-white"
+      >
+        Transfer NFT
+      </button>
+
+      <button
+        className="border border-transparent rounded px-4 py-2 transition-colors bg-blue-500 hover:bg-blue-700 text-white"
+        onClick={fetchActivity}
+      >
+        Fetch Portfolio Activity
+      </button>
+
+      {/* Display NFT Transfer Error Message */}
+      {nftTransferError && (
+        <div className="mt-4 text-red-500">
+          <p>{nftTransferError}</p>
+        </div>
+      )}
+
+      <CheckJobStatus />
     </main>
   );
 }

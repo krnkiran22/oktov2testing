@@ -1,34 +1,34 @@
 "use client";
 import React, { useState } from "react";
 import { useOkto } from "@okto_web3/react-sdk";
- 
+
 interface GetButtonProps {
     title: string;
-    apiFn: any;
+    apiFn: (client: ReturnType<typeof useOkto>) => Promise<unknown>; // More specific type
 }
- 
+
 const GetButton: React.FC<GetButtonProps> = ({ title, apiFn }) => {
     const [modalVisible, setModalVisible] = useState(false);
-    const [resultData, setResultData] = useState("");
+    const [resultData, setResultData] = useState<string>("");
     const oktoClient = useOkto();
- 
+
     const handleButtonClick = () => {
         apiFn(oktoClient)
-        .then((result: any) => {
-            console.log(`${title}:`, result);
-            const resultData = JSON.stringify(result, null, 2);
-            setResultData(resultData !== "null" ? resultData : "No result");
-            setModalVisible(true);
-        })
-        .catch((error: any) => {
-            console.error(`${title} error:`, error);
-            setResultData(`error: ${error}`);
-            setModalVisible(true);
-        });
+            .then((result: unknown) => { // Replace `any` with `unknown`
+                console.log(`${title}:`, result);
+                const resultData = JSON.stringify(result, null, 2);
+                setResultData(resultData !== "null" ? resultData : "No result");
+                setModalVisible(true);
+            })
+            .catch((error: unknown) => { // Replace `any` with `unknown`
+                console.error(`${title} error:`, error);
+                setResultData(`error: ${String(error)}`); // Ensure error is stringified properly
+                setModalVisible(true);
+            });
     };
- 
+
     const handleClose = () => setModalVisible(false);
- 
+
     return (
         <div className="text-center text-white">
             <button
@@ -37,7 +37,7 @@ const GetButton: React.FC<GetButtonProps> = ({ title, apiFn }) => {
             >
                 {title}
             </button>
- 
+
             {modalVisible && (
                 <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
                     <div className="bg-black rounded-lg w-11/12 max-w-2xl p-6">
@@ -69,5 +69,5 @@ const GetButton: React.FC<GetButtonProps> = ({ title, apiFn }) => {
         </div>
     );
 };
- 
-export default GetButton;   
+
+export default GetButton;
