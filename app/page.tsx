@@ -14,7 +14,7 @@ export default function Home() {
   const idToken = useMemo(() => (session ? session.id_token : null), [session]);
 const [portfolio, setPortfolio] = useState<[] | null>(null); // State to hold the portfolio data
   const [error, setError] = useState<string | null>(null); // State to hold error messages
-  const [nftTransferError, setNftTransferError] = useState<string | null>(null); // Error state for NFT transfer
+  const nftTransferError= null;
 
   async function handleAuthenticate(): Promise<any> {
     if (!idToken) {
