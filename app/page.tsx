@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { LoginButton } from "@/app/components/LoginButton";
 import GetButton from "@/app/components/GetButton";
-import { getAccount, getPortfolioNFT, useOkto, nftTransfer, getPortfolioActivity } from '@okto_web3/react-sdk';import { GetPortfolio } from "./components/GetPortfolio"; // Import GetPortfolio
+import { getAccount, getPortfolioNFT, useOkto, nftTransfer, getPortfolioActivity } from '@okto_web3/react-sdk';
 import CheckJobStatus from "./components/CheckJobStatus";
 
 export default function Home() {
